@@ -10,7 +10,7 @@ ENV PIP_ROOT_USER_ACTION=ignore
 
 RUN dnf install -y --setopt=install_weak_deps=False \
         python3 python3-pip python3-devel python3-setuptools python3-wheel \
-        gcc gcc-c++ make cmake ninja-build git \
+        gcc gcc-c++ clang make cmake ninja-build git \
         zlib-devel libxml2-devel \
         curl ca-certificates \
     && dnf clean all
@@ -36,9 +36,17 @@ COPY CMakeLists.txt pyproject.toml setup.py MANIFEST.in LICENSE README.md /src/
 RUN test -f third_party/sleef/CMakeLists.txt \
     || { echo "ERROR: third_party/sleef is empty; clone with --recurse-submodules"; exit 1; }
 
+# The CPU runtime uses _Float16 in C++, which g++ only accepts on AArch64
+# from GCC 13 (openEuler 24.03 ships 12); fall back to clang when the
+# distribution's g++ rejects it.
+RUN echo 'int main(){_Float16 x=0; return (int)x;}' > /tmp/f16.cpp && \
+    if g++ -std=gnu++17 -c /tmp/f16.cpp -o /dev/null 2>/dev/null; then echo gcc; else echo clang; fi > /tmp/cxx-toolchain && \
+    echo "toolchain: $(cat /tmp/cxx-toolchain)"
+
 # Proton off: the CPU backend has no device profiler and the proton build
 # pulls CUPTI headers. Unit tests off: they fetch googletest from GitHub.
-RUN TRITON_WHEEL_NAME=flagtree_cpu \
+RUN if [ "$(cat /tmp/cxx-toolchain)" = clang ]; then export CC=clang CXX=clang++; fi && \
+    TRITON_WHEEL_NAME=flagtree_cpu \
     TRITON_BUILD_PROTON=OFF \
     TRITON_APPEND_CMAKE_ARGS="-DTRITON_BUILD_UT=OFF" \
     MAX_JOBS=${MAX_JOBS} \

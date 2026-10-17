@@ -22,8 +22,11 @@ override_dh_auto_install:
 		exit 1; \
 	fi; \
 	mkdir -p $(PYDIR); \
-	python3 -m pip install --no-deps --no-compile --no-index \
-		--break-system-packages \
+	flag=""; \
+	if python3 -m pip install --help | grep -q -- --break-system-packages; then \
+		flag=--break-system-packages; \
+	fi; \
+	python3 -m pip install --no-deps --no-compile --no-index $$flag \
 		--target=$(PYDIR) "$$wheel"
 	# Console scripts (if any) belong in /usr/bin, not dist-packages/bin.
 	if [ -d $(PYDIR)/bin ]; then \

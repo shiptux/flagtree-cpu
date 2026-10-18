@@ -85,5 +85,5 @@ install -D -m 0644 %{SOURCE0} %{buildroot}%{_licensedir}/%{name}/LICENSE
 %{python3_sitearch}/flagtree_cpu-*.dist-info
 
 %changelog
-* Fri Oct 17 2026 FlagOS Contributors <contact@flagos.io> - 0.1.0-1
+* Sat Oct 17 2026 FlagOS Contributors <contact@flagos.io> - 0.1.0-1
 - Initial RPM packaging.
